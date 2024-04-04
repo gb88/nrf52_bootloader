@@ -194,9 +194,9 @@ static void kaidyth_bootstrap(void)
    NRF_POWER->RESETREAS = NRF_POWER->RESETREAS;
     if (BUTTONS_NUMBER > 0 && ((reset_reason & 0x10000) != 0x10000))
     {
-		nrf_gpio_cfg_input(BUTTON_1,BUTTON_PULL);
+		nrf_gpio_cfg_input(BUTTON_2,BUTTON_PULL);
 		nrf_delay_us(100);
-		if(nrf_gpio_pin_read(BUTTON_1) == BUTTONS_ACTIVE_STATE)
+		if(nrf_gpio_pin_read(BUTTON_2) == BUTTONS_ACTIVE_STATE)
 			nrf_power_gpregret_set(BOOTLOADER_DFU_START);
     }
     timers_init();
@@ -211,19 +211,22 @@ static void kaidyth_bootstrap(void)
 int main(void)
 {
     uint32_t ret_val;
-
-    // Protect MBR and bootloader code from being overwritten.
-    ret_val = nrf_bootloader_flash_protect(0, MBR_SIZE, false);
-    APP_ERROR_CHECK(ret_val);
-    ret_val = nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false);
-    APP_ERROR_CHECK(ret_val);
-
-    (void) NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
-    NRF_LOG_DEFAULT_BACKENDS_INIT();
-
-    NRF_LOG_INFO("Kaidyth DFU: Inside main");
-
     kaidyth_bootstrap();
+    if((nrf_power_gpregret_get() & BOOTLOADER_DFU_START) == BOOTLOADER_DFU_START)
+    {
+
+    	// Protect MBR and bootloader code from being overwritten.
+    	ret_val = nrf_bootloader_flash_protect(0, MBR_SIZE, false);
+    	APP_ERROR_CHECK(ret_val);
+    	ret_val = nrf_bootloader_flash_protect(BOOTLOADER_START_ADDR, BOOTLOADER_SIZE, false);
+    	APP_ERROR_CHECK(ret_val);
+
+    	(void) NRF_LOG_INIT(nrf_bootloader_dfu_timer_counter_get);
+    	NRF_LOG_DEFAULT_BACKENDS_INIT();
+
+    	NRF_LOG_INFO("Kaidyth DFU: Inside main");
+
+
 	
 	// Initiate the bootloader
 	ret_val = nrf_bootloader_init(dfu_observer);
@@ -236,6 +239,11 @@ int main(void)
 
 	// Should never be reached.
 	NRF_LOG_INFO("Kaidyth DFU: After main");
+    }
+    else
+    {
+	nrf_bootloader_app_start();
+    }
 }
 
 /**
